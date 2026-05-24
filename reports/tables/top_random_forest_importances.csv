@@ -1,0 +1,21 @@
+Feature,Importance
+TotalCharges,0.0983
+AverageChargePerTenureMonth,0.0911
+MonthlyCharges,0.0871
+tenure,0.0835
+Contract_Month-to-month,0.0539
+IsMonthToMonthContract_No,0.0428
+IsMonthToMonthContract_Yes,0.0428
+OnlineSecurity_No,0.0255
+TechSupport_No,0.0229
+Contract_Two year,0.0195
+InternetService_Fiber optic,0.0191
+TenureGroup_0-12 months,0.0178
+PaymentMethod_Electronic check,0.0175
+ProtectionServiceCount,0.0173
+ServiceCount,0.0162
+gender_Female,0.0139
+gender_Male,0.0136
+TenureGroup_49-72 months,0.0135
+SeniorCitizen,0.013
+PaperlessBilling_Yes,0.0126

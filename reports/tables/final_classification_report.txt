@@ -1,0 +1,9 @@
+Final best model by test F1 score: Tuned Random Forest
+              precision    recall  f1-score   support
+
+    No Churn       0.90      0.74      0.81      1033
+       Churn       0.51      0.77      0.62       374
+
+    accuracy                           0.75      1407
+   macro avg       0.71      0.75      0.71      1407
+weighted avg       0.80      0.75      0.76      1407

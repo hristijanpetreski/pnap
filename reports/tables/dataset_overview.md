@@ -1,0 +1,5 @@
+| Item | Value |
+| --- | --- |
+| Original observations | 7043 |
+| Original columns | 21 |
+| Blank TotalCharges values | 11 |
