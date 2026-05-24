@@ -4,3 +4,12 @@ uv = "latest"
 
 [env]
 _.python.venv = { path = ".venv", create = true }
+
+[tasks."report:convert"]
+description = "Convert the Markdown seminar report to DOCX and HTML with Pandoc."
+sources = ["reports/telco_churn_report.md", "reports/figures/*.png"]
+outputs = ["reports/dist/telco_churn_report.docx", "reports/dist/telco_churn_report.html"]
+run = [
+  "pandoc reports/telco_churn_report.md -o reports/dist/telco_churn_report.docx --resource-path=reports",
+  "pandoc reports/telco_churn_report.md -o reports/dist/telco_churn_report.html --standalone --resource-path=reports",
+]
