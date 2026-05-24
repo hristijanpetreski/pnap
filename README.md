@@ -25,4 +25,4 @@ The notebook kernel should be selected as `Python (telco-churn)`.
 
 ## Dataset
 
-The current dataset is `data/telco-customer-churn.csv`, the standard flat Telco Customer Churn dataset with customer demographics, service subscriptions, billing information, and the `Churn` target column.
+The current dataset is `data/telco-customer-churn.csv`, the standard flat [Telco Customer Churn](https://www.kaggle.com/datasets/blastchar/telco-customer-churn) dataset with customer demographics, service subscriptions, billing information, and the `Churn` target column.
