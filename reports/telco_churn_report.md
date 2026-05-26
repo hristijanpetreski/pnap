@@ -1,6 +1,6 @@
 ---
 title: "Customer Churn Prediction in the Telecommunications Industry"
-subtitle: "Machine Learning Seminar Report"
+subtitle: "Faculty of Electrical Engineering and Information Technologies, University of Ss. Cyril and Methodius in Skopje, Macedonia"
 author: "Hristijan Petreski"
 student_id: "173/2018"
 date: "May 2026"
