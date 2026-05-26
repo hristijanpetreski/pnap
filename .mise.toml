@@ -6,10 +6,20 @@ uv = "latest"
 _.python.venv = { path = ".venv", create = true }
 
 [tasks."report:convert"]
-description = "Convert the Markdown seminar report to DOCX and HTML with Pandoc."
-sources = ["reports/telco_churn_report.md", "reports/figures/*.png"]
-outputs = ["reports/dist/telco_churn_report.docx", "reports/dist/telco_churn_report.html"]
+description = "Convert the Markdown seminar report to DOCX, HTML, and PDF with Pandoc."
+sources = [
+  "reports/telco_churn_report.md",
+  "reports/figures/*.png",
+  "example/EEE_ETAI-template.docx",
+]
+outputs = [
+  "reports/dist/telco_churn_report.docx",
+  "reports/dist/telco_churn_report.html",
+  "reports/dist/telco_churn_report.pdf",
+]
 run = [
-  "pandoc reports/telco_churn_report.md -o reports/dist/telco_churn_report.docx --resource-path=reports",
+  "mkdir -p reports/dist",
+  "pandoc reports/telco_churn_report.md -o reports/dist/telco_churn_report.docx --resource-path=reports --reference-doc=example/EEE_ETAI-template.docx",
   "pandoc reports/telco_churn_report.md -o reports/dist/telco_churn_report.html --standalone --resource-path=reports",
+  "pandoc reports/telco_churn_report.md -o reports/dist/telco_churn_report.pdf --resource-path=reports --pdf-engine=typst",
 ]
