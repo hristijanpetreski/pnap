@@ -8,11 +8,7 @@ date: "May 2026"
 
 # Abstract
 
-Customer churn is a practical business problem in telecommunications because retaining an existing customer is often less expensive than acquiring a new one. This report presents a supervised machine learning workflow for predicting whether a customer is likely to churn using demographic, service, contract, and billing attributes from a Telco Customer Churn dataset. The project follows a reproducible methodology: data inspection, cleaning, exploratory analysis, feature engineering, model training, model comparison, feature selection, feature importance analysis, and hyperparameter optimization.
-
-The dataset contains 7,043 customer records and 21 original columns. After converting `TotalCharges` from text to numeric format, 11 rows with missing billing totals were removed, leaving 7,032 complete observations. The churn class represents 26.58% of the cleaned dataset, which makes accuracy alone an incomplete measure of model quality. For this reason, the analysis emphasizes precision, recall, F1-score, and ROC-AUC, with special attention to recall and F1-score for the churn class.
-
-Several classification algorithms were evaluated using the same stratified train/test split and pipeline-based preprocessing. The tuned Random Forest achieved the best final F1-score of 0.6167 on the test set, with churn recall of 0.77 and ROC-AUC of 0.8333. These results show that the model can identify a large share of customers who churn, although this comes with moderate precision. In a real retention setting, this trade-off may be acceptable if the business prefers to contact more at-risk customers rather than miss customers who are likely to leave.
+Customer churn is a practical business problem in telecommunications because retaining an existing customer is often less expensive than acquiring a new one. This report presents a supervised machine learning workflow for predicting whether a customer is likely to churn using demographic, service, contract, and billing attributes from the Telco Customer Churn dataset [1]. The methodology includes data inspection, cleaning, exploratory analysis, feature engineering, model training, model comparison, feature selection, feature importance analysis, and hyperparameter optimization. The dataset contains 7,043 customer records and 21 original columns; after converting `TotalCharges` from text to numeric format and removing 11 rows with missing billing totals, 7,032 complete observations remained. Because the churn class represents only 26.58% of the cleaned dataset, the analysis emphasizes precision, recall, F1-score, and ROC-AUC in addition to accuracy. Several classification algorithms were evaluated using the same stratified train/test split and pipeline-based preprocessing. The tuned Random Forest achieved the best final F1-score of 0.6167 on the test set, with churn recall of 0.7701 and ROC-AUC of 0.8333. The results show that the model can identify a large share of customers who churn, although this comes with moderate precision; in a retention setting, this trade-off may be acceptable when the business prefers to contact more at-risk customers rather than miss customers who are likely to leave.
 
 # Keywords
 
@@ -24,9 +20,15 @@ Telecommunication providers operate in a competitive market where customers can 
 
 The goal of this project is to build and evaluate a machine learning workflow for customer churn prediction. The workflow is designed as an academic seminar project, but the problem is also realistic from a business perspective. The model does not only need to be accurate overall. It should also detect customers from the smaller churn class, because those are the cases that are most important for retention actions.
 
-The project uses the notebook `notebooks/01-telco-churn-prediction.ipynb` as the computational reference. The notebook contains the complete implementation, while this report explains the motivation, methodology, results, and limitations in a structured written form.
+The project uses the notebook `notebooks/01-telco-churn-prediction.ipynb` as the computational reference. The notebook contains the complete implementation, while this report explains the motivation, methodology, results, and limitations in a structured written form. The full project repository is available online for reproducibility [8].
 
-# 2. Problem Definition
+# 2. Related Work and Background
+
+Customer churn management is commonly studied as a data mining and customer relationship management problem. Prior work has emphasized that churn prediction is useful only when predictive outputs can support retention decisions, because the practical value of a model depends on how well it identifies customers who may leave and how retention actions are prioritized [2]. In the telecommunications sector, churn modeling is often treated as a supervised classification task in which historical customer attributes are used to estimate the probability of churn.
+
+Earlier churn prediction studies have compared a range of machine learning models, including decision trees, neural networks, support vector machines, logistic regression, and ensemble methods [2]. Profit-driven work in the telco sector has also shown that evaluation should consider business objectives and not only generic accuracy, because a model with strong ranking or recall behavior may be more useful for targeted retention than a model optimized for overall correctness alone [3]. This project is focusing on transparent preprocessing, standard classification metrics, and interpretable model comparison.
+
+# 3. Problem Definition
 
 The task is a binary classification problem. Each row represents one customer, and the target variable is `Churn`, which indicates whether the customer left the company. In the notebook, this target is encoded into a binary label named `ChurnBinary`, where retained customers are represented as 0 and churned customers are represented as 1.
 
@@ -34,9 +36,11 @@ The input features include demographic variables, service subscriptions, contrac
 
 From a business point of view, the cost of errors is not symmetrical. A false positive means that a retained customer is incorrectly flagged as high risk, which may lead to an unnecessary retention action. A false negative means that a customer who will actually churn is not detected. In many retention scenarios, false negatives are more harmful because the company loses the opportunity to intervene. Therefore, this report discusses recall and F1-score in addition to accuracy.
 
-# 3. Dataset Description
+# 4. Dataset Description
 
-The dataset is a flat customer table with 7,043 original observations and 21 original columns. The columns describe customer identity, demographic status, subscribed services, contract information, payment method, charges, and churn outcome. The identifier column `customerID` is not used as a predictive feature because it does not describe customer behavior.
+The dataset is a flat customer table with 7,043 original observations and 21 original columns [1]. The columns describe customer identity, demographic status, subscribed services, contract information, payment method, charges, and churn outcome. The identifier column `customerID` is not used as a predictive feature because it does not describe customer behavior. The tabular inspection and cleaning steps were implemented with pandas [5]. Table 1 summarizes the dataset size, cleaning effect, and churn distribution.
+
+Table: Table 1. Dataset summary after cleaning.
 
 | Item | Value |
 | --- | --- |
@@ -48,33 +52,29 @@ The dataset is a flat customer table with 7,043 original observations and 21 ori
 | Churned customers | 1869 |
 | Churn rate | 26.58% |
 
-The target distribution is moderately imbalanced. Most customers in the cleaned dataset did not churn, while approximately one quarter did. This imbalance is important because a naive model can achieve a superficially high accuracy by predicting the majority class too often. For example, always predicting "No Churn" would ignore the practical objective of identifying customers who are likely to leave.
+The target distribution is moderately imbalanced. Most customers in the cleaned dataset did not churn, while approximately one quarter did. This imbalance is important because a naive model can achieve a superficially high accuracy by predicting the majority class too often. For example, always predicting "No Churn" would ignore the practical objective of identifying customers who are likely to leave. Figure 1 shows this class distribution visually.
 
-![Churn class distribution](figures/churn_class_distribution.png)
+![Figure 1. Distribution of retained and churned customers in the cleaned dataset.](figures/churn_class_distribution.png)
 
-*Figure 1. Distribution of retained and churned customers in the cleaned dataset.*
-
-# 4. Data Cleaning and Preprocessing
+# 5. Data Cleaning and Preprocessing
 
 The first data quality issue is the `TotalCharges` column. Although this column represents a numeric billing amount, it is stored as text because 11 records contain blank strings. These blanks become missing values after numeric conversion. Because they represent only 0.16% of the original dataset, the affected rows were removed instead of imputed.
 
 This decision keeps the cleaning process simple and avoids inventing artificial billing values for a very small subset of records. After cleaning, the dataset contains 7,032 observations. The `Churn` column is mapped into `ChurnBinary`, and the original text target is excluded from the model input.
 
-Preprocessing is implemented through scikit-learn pipelines. Numerical variables are standardized with `StandardScaler`, and categorical variables are transformed with one-hot encoding. This is important because transformations are fitted only on the training split during model training and cross-validation. The pipeline structure reduces the risk of data leakage and makes model comparison more consistent.
+Preprocessing is implemented through scikit-learn pipelines [4]. Numerical variables are standardized with `StandardScaler`, and categorical variables are transformed with one-hot encoding. This is important because transformations are fitted only on the training split during model training and cross-validation. The pipeline structure reduces the risk of data leakage and makes model comparison more consistent.
 
-# 5. Exploratory Data Analysis
+# 6. Exploratory Data Analysis
 
-Exploratory analysis is used to understand which customer attributes are likely related to churn. The notebook compares churn rates across contract type, internet service, payment method, technical support, online security, tenure, and charges.
+Exploratory analysis is used to understand which customer attributes are likely related to churn. The notebook compares churn rates across contract type, internet service, payment method, technical support, online security, tenure, and charges. The visualizations were generated with Matplotlib and seaborn [6], [7].
 
 The exploratory results show that contract type is one of the strongest visible churn indicators. Customers with month-to-month contracts have higher churn rates than customers with one-year or two-year contracts. This pattern is intuitive because short-term contracts make switching easier and may indicate weaker commitment to the provider.
 
-Service and support variables are also informative. Customers without online security or technical support show higher churn rates than customers who have these services. Payment method is another useful signal: electronic check users have a higher churn rate than customers using automatic payment methods. These patterns suggest that churn is connected not only to price, but also to service relationship depth and convenience.
+Service and support variables are also informative. Customers without online security or technical support show higher churn rates than customers who have these services. Payment method is another useful signal: electronic check users have a higher churn rate than customers using automatic payment methods. These patterns suggest that churn is connected not only to price, but also to service relationship depth and convenience. Figure 2 summarizes the selected categorical churn-rate comparisons.
 
-![Churn rate by selected categorical features](figures/categorical_churn_rates.png)
+![Figure 2. Churn rate by contract, internet service, payment method, technical support, and online security.](figures/categorical_churn_rates.png)
 
-*Figure 2. Churn rate by contract, internet service, payment method, technical support, and online security.*
-
-# 6. Feature Engineering
+# 7. Feature Engineering
 
 The original features already contain useful information, but additional variables were created to summarize customer behavior in more compact forms. The engineered variables include:
 
@@ -88,13 +88,11 @@ The original features already contain useful information, but additional variabl
 - `TenureGroup`, which groups tenure into interpretable bands.
 - `MonthlyChargeGroup`, which groups monthly charges into billing bands.
 
-These features are intended to capture domain-level patterns that may be harder for some models to learn directly from many separate categorical variables. For example, a count of support and protection services gives a compact measure of service adoption. A month-to-month contract indicator directly captures a pattern observed during exploratory analysis.
+These features are intended to capture domain-level patterns that may be harder for some models to learn directly from many separate categorical variables. For example, a count of support and protection services gives a compact measure of service adoption. A month-to-month contract indicator directly captures a pattern observed during exploratory analysis. Figure 3 shows several of the engineered features and their relationship with churn.
 
-![Engineered feature churn patterns](figures/engineered_feature_patterns.png)
+![Figure 3. Churn patterns for tenure groups, service count, average charge per tenure month, and automatic payment usage.](figures/engineered_feature_patterns.png)
 
-*Figure 3. Churn patterns for tenure groups, service count, average charge per tenure month, and automatic payment usage.*
-
-# 7. Modeling Methodology
+# 8. Modeling Methodology
 
 The data is split into training and test sets using an 80/20 stratified split with a fixed random state. Stratification preserves the churn ratio in both subsets. The training set contains 5,625 customers, and the test set contains 1,407 customers.
 
@@ -113,22 +111,26 @@ After the baseline, the engineered feature set is used to compare multiple algor
 
 Each model is evaluated using the same split and the same preprocessing logic. Five-fold cross-validation is used on the training data to estimate stability, and the fitted models are then evaluated on the held-out test set.
 
-# 8. Evaluation Metrics
+# 9. Evaluation Metrics
 
 The main metrics are accuracy, precision, recall, F1-score, and ROC-AUC. Accuracy measures the share of correct predictions, but it can be misleading when the classes are imbalanced. Precision measures how many predicted churn cases are truly churn cases. Recall measures how many actual churn cases are detected by the model. F1-score balances precision and recall. ROC-AUC measures the model's ability to rank churned customers above retained customers across thresholds.
 
 For this project, F1-score is used as the main selection criterion because it balances the need to identify churned customers with the need to avoid too many false alarms. Recall is also important because a retention-focused system should avoid missing too many customers who are likely to leave.
 
-# 9. Results
+# 10. Results
 
-The original Logistic Regression baseline produced an accuracy of 0.8045, churn precision of 0.6495, churn recall of 0.5749, F1-score of 0.6099, and ROC-AUC of 0.8359. This is a strong interpretable starting point. The engineered-feature Logistic Regression model had similar ROC-AUC but lower F1-score on the test split, which suggests that the added variables did not improve this specific linear model.
+The original Logistic Regression baseline produced an accuracy of 0.8045, churn precision of 0.6495, churn recall of 0.5749, F1-score of 0.6099, and ROC-AUC of 0.8359. This is a strong interpretable starting point. The engineered-feature Logistic Regression model had similar ROC-AUC but lower F1-score on the test split, which suggests that the added variables did not improve this specific linear model. Table 2 compares the original and engineered Logistic Regression baselines.
+
+Table: Table 2. Logistic Regression baseline comparison.
 
 | Model | Accuracy | Precision | Recall | F1 Score | ROC-AUC |
 | --- | --- | --- | --- | --- | --- |
 | Logistic Regression - Original Features | 0.8045 | 0.6495 | 0.5749 | 0.6099 | 0.8359 |
 | Logistic Regression - Engineered Features | 0.7953 | 0.6361 | 0.5374 | 0.5826 | 0.8342 |
 
-When multiple model families were compared on the engineered feature set, the Decision Tree achieved the highest initial test F1-score of 0.6073. Gaussian Naive Bayes achieved high recall of 0.8102 but lower precision, meaning it detected many churned customers but also produced more false positives. Logistic Regression and Gradient Boosting achieved stronger accuracy and ROC-AUC, but lower churn recall than the Decision Tree.
+When multiple model families were compared on the engineered feature set, the Decision Tree achieved the highest initial test F1-score of 0.6073. Gaussian Naive Bayes achieved high recall of 0.8102 but lower precision, meaning it detected many churned customers but also produced more false positives. Logistic Regression and Gradient Boosting achieved stronger accuracy and ROC-AUC, but lower churn recall than the Decision Tree. Table 3 reports the full initial comparison.
+
+Table: Table 3. Initial model comparison on the engineered feature set.
 
 | Model | Accuracy | Precision | Recall | F1 Score | ROC-AUC |
 | --- | --- | --- | --- | --- | --- |
@@ -141,13 +143,15 @@ When multiple model families were compared on the engineered feature set, the De
 | SVM | 0.7903 | 0.6458 | 0.4679 | 0.5426 | 0.7880 |
 | Dummy Baseline | 0.7342 | 0.0000 | 0.0000 | 0.0000 | 0.5000 |
 
-![Model comparison across metrics](figures/model_comparison_metrics.png)
+Figure 4 provides a visual comparison of these metrics across all candidate models.
 
-*Figure 4. Model comparison across accuracy, precision, recall, F1-score, and ROC-AUC.*
+![Figure 4. Model comparison across accuracy, precision, recall, F1-score, and ROC-AUC.](figures/model_comparison_metrics.png)
 
-# 10. Feature Selection and Feature Importance
+# 11. Feature Selection and Feature Importance
 
-Feature selection was performed using mutual information on the preprocessed training matrix. The strongest features were related to month-to-month contracts, tenure, longer contract types, absence of online security, absence of technical support, electronic check payment, and billing variables. This agrees with the exploratory analysis and supports the interpretation that contract commitment, service support, tenure, and payment behavior are central churn signals.
+Feature selection was performed using mutual information on the preprocessed training matrix. The strongest features were related to month-to-month contracts, tenure, longer contract types, absence of online security, absence of technical support, electronic check payment, and billing variables. This agrees with the exploratory analysis and supports the interpretation that contract commitment, service support, tenure, and payment behavior are central churn signals. Table 4 lists the highest-ranked mutual information features.
+
+Table: Table 4. Top mutual information features.
 
 | Feature | Mutual Information |
 | --- | --- |
@@ -162,11 +166,13 @@ Feature selection was performed using mutual information on the preprocessed tra
 | `PaymentMethod_Electronic check` | 0.0458 |
 | `MonthlyCharges` | 0.0454 |
 
-![Top mutual information features](figures/top_mutual_information_features.png)
+Figure 5 extends this ranking to the top 20 transformed features.
 
-*Figure 5. Top 20 features by mutual information.*
+![Figure 5. Top 20 features by mutual information.](figures/top_mutual_information_features.png)
 
-A Random Forest feature-importance analysis gives a complementary view. The most important features include `TotalCharges`, `AverageChargePerTenureMonth`, `MonthlyCharges`, `tenure`, and month-to-month contract indicators. These results show that both billing intensity and customer relationship duration are important for churn prediction.
+A Random Forest feature-importance analysis gives a complementary view. The most important features include `TotalCharges`, `AverageChargePerTenureMonth`, `MonthlyCharges`, `tenure`, and month-to-month contract indicators. These results show that both billing intensity and customer relationship duration are important for churn prediction. Table 5 lists the highest Random Forest feature importances.
+
+Table: Table 5. Top Random Forest feature importances.
 
 | Feature | Importance |
 | --- | --- |
@@ -181,13 +187,15 @@ A Random Forest feature-importance analysis gives a complementary view. The most
 | `TechSupport_No` | 0.0229 |
 | `Contract_Two year` | 0.0195 |
 
-![Top Random Forest feature importances](figures/top_random_forest_importances.png)
+Figure 6 shows the corresponding top 20 Random Forest importances.
 
-*Figure 6. Top 20 Random Forest feature importances.*
+![Figure 6. Top 20 Random Forest feature importances.](figures/top_random_forest_importances.png)
 
-# 11. Hyperparameter Optimization
+# 12. Hyperparameter Optimization
 
-Random Forest and Gradient Boosting were selected for hyperparameter tuning because they are suitable for mixed tabular data and can model non-linear relationships. The optimization metric was F1-score, matching the project objective of balancing precision and recall for the churn class.
+Random Forest and Gradient Boosting were selected for hyperparameter tuning because they are suitable for mixed tabular data and can model non-linear relationships. The optimization metric was F1-score, matching the project objective of balancing precision and recall for the churn class. Table 6 reports the tuned model results.
+
+Table: Table 6. Hyperparameter optimization results.
 
 | Model | Accuracy | Precision | Recall | F1 Score | ROC-AUC | Best CV F1 |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -196,17 +204,13 @@ Random Forest and Gradient Boosting were selected for hyperparameter tuning beca
 
 The tuned Random Forest used 400 trees, maximum depth 8, minimum samples split 10, and balanced class weights. It achieved the best final test F1-score of 0.6167. Compared with Logistic Regression, it sacrificed some precision and accuracy but improved churn recall substantially. This means the model identifies more of the customers who actually churn, which may be valuable in a retention context.
 
-The final classification report for the tuned Random Forest shows churn precision of 0.51, churn recall of 0.77, and churn F1-score of 0.62. The overall accuracy is 0.75. These results should not be interpreted as production-ready performance, but they are useful for demonstrating a complete modeling workflow and for motivating future improvements.
+The final classification report for the tuned Random Forest shows churn precision of 0.51, churn recall of 0.77, and churn F1-score of 0.62. The overall accuracy is 0.75. These results should not be interpreted as production-ready performance, but they are useful for demonstrating a complete modeling workflow and for motivating future improvements. Figure 7 shows the final confusion matrix, and Figure 8 shows the ROC curve for the selected model.
 
-![Final confusion matrix](figures/final_confusion_matrix.png)
+![Figure 7. Confusion matrix for the final tuned Random Forest model.](figures/final_confusion_matrix.png)
 
-*Figure 7. Confusion matrix for the final tuned Random Forest model.*
+![Figure 8. ROC curve for the final tuned Random Forest model.](figures/final_roc_curve.png)
 
-![Final ROC curve](figures/final_roc_curve.png)
-
-*Figure 8. ROC curve for the final tuned Random Forest model.*
-
-# 12. Discussion
+# 13. Discussion
 
 The results show a clear trade-off between precision and recall. Some models, such as Logistic Regression and Gradient Boosting, produce stronger overall accuracy and precision. Other models, such as Gaussian Naive Bayes, Decision Tree, and the tuned Random Forest, produce stronger churn recall. The best model depends on the real cost of retention actions.
 
@@ -214,7 +218,7 @@ If contacting a customer is inexpensive, higher recall may be preferred because 
 
 The feature analysis also gives practical insight. Month-to-month contracts, shorter tenure, lack of support services, electronic check payment, and billing variables appear repeatedly as important predictors. These factors could guide business interpretation. For example, customers with short tenure and month-to-month contracts may benefit from onboarding support or contract incentives. Customers without technical support or online security may have weaker service attachment, which can increase churn risk.
 
-# 13. Limitations
+# 14. Limitations
 
 The main limitation is that the dataset is a static customer snapshot. It does not include detailed time-series behavior such as recent usage changes, support tickets, network quality, marketing interactions, or previous retention offers. In production, these dynamic signals could be important.
 
@@ -222,7 +226,7 @@ Another limitation is that the evaluation uses a single held-out split after cro
 
 The engineered features use fixed, interpretable categories. This makes the report easier to explain, but the bins may not be optimal for all datasets. More advanced feature engineering could be tested in future work, as long as it is performed inside reproducible pipelines to avoid leakage.
 
-# 14. Conclusion
+# 15. Conclusion
 
 This project developed a complete churn prediction workflow for telecommunications customer data. The workflow included data cleaning, exploratory analysis, feature engineering, preprocessing pipelines, baseline modeling, model comparison, feature selection, feature importance analysis, and hyperparameter optimization.
 
@@ -235,11 +239,22 @@ The most consistent churn indicators are contract type, tenure, support and secu
 - Main notebook: `notebooks/01-telco-churn-prediction.ipynb`
 - Dataset: `data/telco-customer-churn.csv`
 - Generated report assets: `reports/tables/` and `reports/figures/`
-- Code repository link for presentation: `[add repository URL here]`
+- Project repository: <https://github.com/hristijanpetreski/pnap> [8]
 
 # References
 
-1. Telco Customer Churn dataset, customer account and churn records used for the seminar project.
-2. scikit-learn documentation, preprocessing, model selection, metrics, and estimator APIs.
-3. pandas documentation, tabular data loading, cleaning, and transformation APIs.
-4. matplotlib and seaborn documentation, visualization APIs used for exploratory analysis and report figures.
+[1] BlastChar, "Telco Customer Churn," Kaggle dataset. Available: <https://www.kaggle.com/datasets/blastchar/telco-customer-churn>. Accessed: May 26, 2026.
+
+[2] J. Hadden, A. Tiwari, R. Roy, and D. Ruta, "Computer assisted customer churn management: State-of-the-art and future trends," *Computers & Operations Research*, vol. 34, no. 10, pp. 2902-2917, 2007, doi: 10.1016/j.cor.2005.11.007.
+
+[3] W. Verbeke, K. Dejaeger, D. Martens, J. Hur, and B. Baesens, "New insights into churn prediction in the telecommunication sector: A profit driven data mining approach," *European Journal of Operational Research*, vol. 218, no. 1, pp. 211-229, 2012.
+
+[4] scikit-learn developers, "scikit-learn User Guide." Available: <https://scikit-learn.org/stable/user_guide.html>. Accessed: May 26, 2026.
+
+[5] pandas development team, "pandas documentation." Available: <https://pandas.pydata.org/docs/>. Accessed: May 26, 2026.
+
+[6] Matplotlib development team, "Matplotlib documentation." Available: <https://matplotlib.org/stable/>. Accessed: May 26, 2026.
+
+[7] seaborn development team, "seaborn documentation." Available: <https://seaborn.pydata.org/>. Accessed: May 26, 2026.
+
+[8] H. Petreski, "pnap: Telco customer churn prediction seminar project." GitHub repository. Available: <https://github.com/hristijanpetreski/pnap>. Accessed: May 26, 2026.
